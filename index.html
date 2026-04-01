@@ -377,6 +377,11 @@
 
     <!-- SIDEBAR -->
     <div class="sidebar">
+        <div class="sidebar-label">Pages</div>
+        <button class="nav-item" onclick="switchSection('index-page', this)">
+            <span class="nav-icon">🏠</span> Index Page
+        </button>
+
         <div class="sidebar-label">Content</div>
         <button class="nav-item active" onclick="switchSection('certificates', this)">
             <span class="nav-icon">🏆</span> Certificates
@@ -403,6 +408,62 @@
 
     <!-- MAIN -->
     <div class="main">
+
+        <!-- ========== INDEX PAGE ========== -->
+        <div class="section" id="section-index-page">
+            <div class="page-title">🏠 Index Page</div>
+            <div class="page-sub">Manage the hero section of your main portfolio page.</div>
+
+            <!-- Profile Photo -->
+            <div class="card">
+                <div class="card-title">📸 Profile Photo</div>
+                <p style="font-size:0.83rem; color:#888; margin-bottom:14px;">Upload your profile photo shown in the hero avatar on index.html.</p>
+                <div style="display:flex; align-items:center; gap:18px; margin-bottom:14px;">
+                    <div id="profile-photo-preview" style="width:80px;height:80px;border-radius:12px;border:2.5px solid #1a1a1a;overflow:hidden;background:#f0f0f0;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:28px;">👤</div>
+                    <div style="flex:1;">
+                        <div class="img-preview-box" id="profile-photo-box" style="height:80px;margin-bottom:8px;"><span>No photo yet</span></div>
+                        <input class="form-input" id="profile-photo-url" placeholder="Image URL" style="margin-bottom:8px;" oninput="previewProfilePhoto()">
+                        <button class="btn btn-ghost btn-sm" onclick="uploadProfilePhoto()">📤 Upload Photo</button>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-yellow" onclick="saveProfilePhoto()">💾 Save Profile Photo</button>
+                    <button class="btn btn-red btn-sm" onclick="removeProfilePhoto()">🗑 Remove</button>
+                </div>
+            </div>
+
+            <!-- GIF / Decorative Image -->
+            <div class="card">
+                <div class="card-title">🎞️ Hero GIF / Decoration</div>
+                <p style="font-size:0.83rem; color:#888; margin-bottom:14px;">Upload a GIF or image that appears as a decorative element on the index page hero section.</p>
+                <div id="gif-preview" style="width:100%;max-height:160px;border-radius:8px;border:1.5px dashed #e0e0e0;overflow:hidden;background:#fafafa;display:flex;align-items:center;justify-content:center;color:#ccc;font-size:0.85rem;margin-bottom:10px;">No GIF yet</div>
+                <input class="form-input" id="gif-url" placeholder="GIF or image URL" style="margin-bottom:8px;" oninput="previewGif()">
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                    <button class="btn btn-ghost btn-sm" onclick="uploadGif()">📤 Upload GIF</button>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">GIF Position</label>
+                    <select class="form-select" id="gif-position">
+                        <option value="below-bio">Below Bio Text</option>
+                        <option value="hero-bg">Hero Background Overlay</option>
+                        <option value="after-hero">After Hero Section</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">GIF Size</label>
+                    <select class="form-select" id="gif-size">
+                        <option value="small">Small (80px height)</option>
+                        <option value="medium">Medium (140px height)</option>
+                        <option value="large">Large (200px height)</option>
+                        <option value="full">Full width</option>
+                    </select>
+                </div>
+                <div class="btn-row">
+                    <button class="btn btn-yellow" onclick="saveGif()">💾 Save GIF</button>
+                    <button class="btn btn-red btn-sm" onclick="removeGif()">🗑 Remove GIF</button>
+                </div>
+            </div>
+        </div>
 
         <!-- ========== CERTIFICATES ========== -->
         <div class="section active" id="section-certificates">
@@ -641,7 +702,7 @@ const BIN_ID  = '6989f92bd0ea881f40ad5b6c';
 const CLD_CLOUD  = 'ddjznnout';
 const CLD_PRESET = 'portfolio_unsigned';
 
-let db = { certificates: [], activities: [], projects: [], komisImages: {}, portfolio: [] };
+let db = { certificates: [], activities: [], projects: [], komisImages: {}, portfolio: [], indexConfig: {} };
 let currentTags = [];
 let actImgs = [];
 
@@ -683,7 +744,8 @@ async function fetchData() {
             activities:   (data.record.activities   || []).filter(a => a !== null),
             projects:     (data.record.projects     || []).filter(p => p !== null),
             komisImages:  data.record.komisImages  || {},
-            portfolio:    (data.record.portfolio    || []).filter(p => p !== null)
+            portfolio:    (data.record.portfolio    || []).filter(p => p !== null),
+            indexConfig:  data.record.indexConfig  || {}
         };
         renderAll();
         document.getElementById('save-status').textContent = 'Synced ✓';
@@ -746,6 +808,7 @@ function renderAll() {
     renderTechList();
     renderKomisList();
     renderPortfolioList();
+    renderIndexConfig();
     document.getElementById('count-certs').textContent = db.certificates.length;
     document.getElementById('count-acts').textContent = db.activities.length;
     document.getElementById('count-tech').textContent = db.projects.length;
@@ -1161,6 +1224,134 @@ function renderPortfolioList() {
     `).join('');
 }
 
+
+// ===== INDEX CONFIG =====
+function renderIndexConfig() {
+    const cfg = db.indexConfig || {};
+    // Profile photo
+    const photoUrl = cfg.profilePhoto || '';
+    document.getElementById('profile-photo-url').value = photoUrl;
+    if (photoUrl) {
+        document.getElementById('profile-photo-preview').innerHTML = `<img src="${photoUrl}" style="width:100%;height:100%;object-fit:cover;">`;
+        document.getElementById('profile-photo-box').innerHTML = `<img src="${photoUrl}">`;
+    } else {
+        document.getElementById('profile-photo-preview').innerHTML = '👤';
+        document.getElementById('profile-photo-box').innerHTML = '<span>No photo yet</span>';
+    }
+    // GIF
+    const gifUrl = cfg.gifUrl || '';
+    document.getElementById('gif-url').value = gifUrl;
+    if (gifUrl) {
+        document.getElementById('gif-preview').innerHTML = `<img src="${gifUrl}" style="max-width:100%;max-height:160px;object-fit:contain;">`;
+    } else {
+        document.getElementById('gif-preview').innerHTML = 'No GIF yet';
+        document.getElementById('gif-preview').style.color = '#ccc';
+    }
+    if (cfg.gifPosition) document.getElementById('gif-position').value = cfg.gifPosition;
+    if (cfg.gifSize)     document.getElementById('gif-size').value     = cfg.gifSize;
+}
+
+function previewProfilePhoto() {
+    const url = document.getElementById('profile-photo-url').value.trim();
+    if (url) {
+        document.getElementById('profile-photo-preview').innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+        document.getElementById('profile-photo-box').innerHTML = `<img src="${url}">`;
+    }
+}
+
+function uploadProfilePhoto() {
+    const widget = cloudinary.createUploadWidget({
+        cloudName: CLD_CLOUD,
+        uploadPreset: CLD_PRESET,
+        folder: 'profile',
+        sources: ['local','url','camera'],
+        multiple: false,
+        cropping: true,
+        croppingAspectRatio: 1,
+    }, (err, result) => {
+        if (!err && result.event === 'success') {
+            const url = result.info.secure_url;
+            document.getElementById('profile-photo-url').value = url;
+            document.getElementById('profile-photo-preview').innerHTML = `<img src="${url}" style="width:100%;height:100%;object-fit:cover;">`;
+            document.getElementById('profile-photo-box').innerHTML = `<img src="${url}">`;
+        }
+    });
+    widget.open();
+}
+
+function saveProfilePhoto() {
+    const url = document.getElementById('profile-photo-url').value.trim();
+    if (!db.indexConfig) db.indexConfig = {};
+    db.indexConfig.profilePhoto = url;
+    saveData();
+    toast('✓ Profile photo saved!', 'success');
+}
+
+function removeProfilePhoto() {
+    if (!confirm('Remove profile photo?')) return;
+    if (!db.indexConfig) db.indexConfig = {};
+    db.indexConfig.profilePhoto = '';
+    document.getElementById('profile-photo-url').value = '';
+    document.getElementById('profile-photo-preview').innerHTML = '👤';
+    document.getElementById('profile-photo-box').innerHTML = '<span>No photo yet</span>';
+    saveData();
+    toast('Profile photo removed.', 'success');
+}
+
+function previewGif() {
+    const url = document.getElementById('gif-url').value.trim();
+    const box = document.getElementById('gif-preview');
+    if (url) {
+        box.innerHTML = `<img src="${url}" style="max-width:100%;max-height:160px;object-fit:contain;">`;
+        box.style.color = '';
+    } else {
+        box.innerHTML = 'No GIF yet';
+        box.style.color = '#ccc';
+    }
+}
+
+function uploadGif() {
+    const widget = cloudinary.createUploadWidget({
+        cloudName: CLD_CLOUD,
+        uploadPreset: CLD_PRESET,
+        folder: 'gifs',
+        sources: ['local','url'],
+        multiple: false,
+    }, (err, result) => {
+        if (!err && result.event === 'success') {
+            const url = result.info.secure_url;
+            document.getElementById('gif-url').value = url;
+            const box = document.getElementById('gif-preview');
+            box.innerHTML = `<img src="${url}" style="max-width:100%;max-height:160px;object-fit:contain;">`;
+            box.style.color = '';
+        }
+    });
+    widget.open();
+}
+
+function saveGif() {
+    const url      = document.getElementById('gif-url').value.trim();
+    const position = document.getElementById('gif-position').value;
+    const size     = document.getElementById('gif-size').value;
+    if (!db.indexConfig) db.indexConfig = {};
+    db.indexConfig.gifUrl      = url;
+    db.indexConfig.gifPosition = position;
+    db.indexConfig.gifSize     = size;
+    saveData();
+    toast('✓ GIF settings saved!', 'success');
+}
+
+function removeGif() {
+    if (!confirm('Remove GIF?')) return;
+    if (!db.indexConfig) db.indexConfig = {};
+    db.indexConfig.gifUrl = '';
+    document.getElementById('gif-url').value = '';
+    const box = document.getElementById('gif-preview');
+    box.innerHTML = 'No GIF yet';
+    box.style.color = '#ccc';
+    saveData();
+    toast('GIF removed.', 'success');
+}
 
 // INIT
 fetchData();
